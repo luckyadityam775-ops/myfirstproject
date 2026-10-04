@@ -718,6 +718,8 @@ create policy "Izinkan baca rounds log" on public.blackjack_rounds for select us
                 window.game.showToast('Skrip SQL disalin ke clipboard!');
             });
 
+            document.getElementById('supabase-url-input').value = window.supabaseService.url || '';
+            document.getElementById('supabase-key-input').value = window.supabaseService.key || '';
             window.supabaseService.updateStatusBadge();
 
             // Initial render

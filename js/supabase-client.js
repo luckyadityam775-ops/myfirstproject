@@ -3,11 +3,14 @@
  * Cloud profiles, real-time leaderboard, bankroll persistence, and Realtime Channels
  */
 
+const DEFAULT_SUPABASE_URL = 'https://hddecjvkaaxjmyfgzqwh.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkZGVjanZrYWF4am15Zmd6cXdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExMTE4MTAsImV4cCI6MjEwNjY4NzgxMH0.SGDzmHUy8ygidb5bpWPr0JAgD_ilcbw0ctfdG1DnDZ4';
+
 class SupabaseService {
     constructor() {
         this.client = null;
-        this.url = localStorage.getItem('supabase_url') || '';
-        this.key = localStorage.getItem('supabase_key') || '';
+        this.url = localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL;
+        this.key = localStorage.getItem('supabase_key') || DEFAULT_SUPABASE_KEY;
         this.connected = false;
         this.activeChannel = null;
 
