@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Royal Palace Blackjack VIP - Multiplayer Kasino Standar Global</title>
+    <meta name="description" content="Mainkan game kartu Blackjack multiplayer resmi dengan aturan standar kasino internasional (Vegas Strip S17, 6 Dek, Asuransi, Split, Double Down, Surrender).">
+    
+    <!-- Google Fonts: Cinzel & Montserrat -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- PeerJS for WebRTC P2P Multiplayer -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Atmospheric Casino Background Overlay -->
+    <div class="casino-atmosphere-bg"></div>
+
+    <div class="casino-app-container">
+        <!-- TOP LUXURY HEADER -->
+        <header class="casino-header">
+            <div class="header-left">
+                <div class="casino-brand">
+                    <span class="brand-crown">👑</span>
+                    <div>
+                        <h1 class="brand-title" data-i18n="title">ROYAL PALACE BLACKJACK VIP</h1>
+                        <span class="brand-subtitle" data-i18n="subtitle">Multiplayer Kasino Resmi Standar Global</span>
+                    </div>
+                </div>
+                <div class="table-info-badges">
+                    <span class="badge badge-limits" data-i18n="min_max">Batas: $10 - $2,500</span>
+                    <span class="badge badge-rules" data-i18n="table_rules">BJ Bayar 3:2 • Dealer Stand di 17 • Asuransi 2:1</span>
+                    <span class="badge badge-mode" id="current-mode-badge" data-i18n="mode_solo">Mode: Solo / Multi-Hand</span>
+                </div>
+            </div>
+
+            <!-- Card Counting & Bankroll HUD -->
+            <div class="header-center">
+                <div class="counter-display" title="Sistem Hitungan Kartu Hi-Lo">
+                    <div class="count-box">
+                        <span class="count-label" data-i18n="running_count">Hi-Lo Count</span>
+                        <span class="count-val" id="running-count-val">0</span>
+                    </div>
+                    <div class="count-box">
+                        <span class="count-label" data-i18n="true_count">True Count</span>
+                        <span class="count-val" id="true-count-val">0.0</span>
+                    </div>
+                    <div class="count-box">
+                        <span class="count-label">Shoe</span>
+                        <span class="count-val" id="shoe-remaining-val">312 / 312</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <div class="bankroll-card">
+                    <span class="bankroll-title" data-i18n="bankroll">Saldo Anda</span>
+                    <div class="bankroll-val-row">
+                        <span class="bankroll-amount" id="user-bankroll-val">$2,500</span>
+                        <button class="refill-btn" id="refill-bankroll-btn" data-i18n-title="refill" title="Isi Saldo ATM">➕</button>
+                    </div>
+                </div>
+
+                <div class="top-nav-actions">
+                    <button class="nav-icon-btn" id="strategy-btn" data-i18n-title="strategy_btn" title="Saran Strategi">💡</button>
+                    <button class="nav-icon-btn" id="multiplayer-btn" data-i18n-title="multiplayer_btn" title="Multiplayer">👥</button>
+                    <button class="nav-icon-btn" id="stats-btn" data-i18n-title="stats_btn" title="Statistik">📊</button>
+                    <button class="nav-icon-btn" id="rules-btn" data-i18n-title="rules_btn" title="Aturan Kasino">📖</button>
+                    <button class="nav-icon-btn" id="sound-btn" data-i18n-title="sound_on" title="Suara">🔊</button>
+                    
+                    <div class="lang-switch-group">
+                        <button class="lang-btn active" id="lang-id-btn">ID</button>
+                        <button class="lang-btn" id="lang-en-btn">EN</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CASINO TABLE -->
+        <main class="blackjack-table-area">
+            <div class="table-outer-rim">
+                <div class="table-felt">
+                    
+                    <!-- DEALER SECTION -->
+                    <section class="dealer-section">
+                        <div class="dealer-info-card">
+                            <span class="dealer-badge" data-i18n="dealer">DEALER</span>
+                            <span class="dealer-score-badge" id="dealer-score">0</span>
+                        </div>
+                        
+                        <!-- 6-Deck Shoe Graphic -->
+                        <div class="dealer-shoe-graphic" title="6-Deck Shoe">
+                            <div class="shoe-body">
+                                <span class="shoe-label">6 DECKS</span>
+                            </div>
+                        </div>
+
+                        <!-- Dealer Card Fan -->
+                        <div class="dealer-cards-holder" id="dealer-cards">
+                            <!-- Cards rendered dynamically -->
+                        </div>
+                    </section>
+
+                    <!-- TABLE CENTER EMBOSS & ANNOUNCER -->
+                    <div class="table-center-felt-art">
+                        <div class="felt-gold-arc">BLACKJACK PAYS 3 TO 2</div>
+                        <div class="felt-gold-subarc">DEALER MUST STAND ON ALL 17s • INSURANCE PAYS 2 TO 1</div>
+                        <div class="table-announcer-banner" id="table-announcer" data-i18n="place_bets">
+                            Silakan pasang taruhan Anda...
+                        </div>
+                    </div>
+
+                    <!-- 5 PLAYER SEATS CURVE -->
+                    <section class="table-seats-arc">
+                        <!-- Seat 0: First Base -->
+                        <div class="table-seat" id="table-seat-0"></div>
+                        <!-- Seat 1 -->
+                        <div class="table-seat" id="table-seat-1"></div>
+                        <!-- Seat 2: Center (Player default) -->
+                        <div class="table-seat center-seat" id="table-seat-2"></div>
+                        <!-- Seat 3 -->
+                        <div class="table-seat" id="table-seat-3"></div>
+                        <!-- Seat 4: Third Base -->
+                        <div class="table-seat" id="table-seat-4"></div>
+                    </section>
+
+                </div>
+            </div>
+        </main>
+
+        <!-- BOTTOM CASINO CONTROLS -->
+        <footer class="casino-control-footer">
+            
+            <!-- Chip Denomination Selector Rack -->
+            <div class="chip-rack-container">
+                <button class="chip-selector-btn chip-btn-1" data-value="1" title="$1 Chip">$1</button>
+                <button class="chip-selector-btn chip-btn-5" data-value="5" title="$5 Chip">$5</button>
+                <button class="chip-selector-btn chip-btn-25 selected" data-value="25" title="$25 Chip">$25</button>
+                <button class="chip-selector-btn chip-btn-100" data-value="100" title="$100 Chip">$100</button>
+                <button class="chip-selector-btn chip-btn-500" data-value="500" title="$500 Chip">$500</button>
+                <button class="chip-selector-btn chip-btn-1000" data-value="1000" title="$1,000 Chip">$1K</button>
+            </div>
+
+            <!-- BETTING CONTROLS (during BETTING phase) -->
+            <div class="controls-action-bar" id="betting-controls-rack">
+                <button class="casino-btn btn-secondary" id="clear-bet-btn" data-i18n="clear_bet">Hapus</button>
+                <button class="casino-btn btn-secondary" id="double-bet-btn" data-i18n="double_bet">2x Taruhan</button>
+                <button class="casino-btn btn-secondary" id="rebet-btn" data-i18n="rebet">Ulangi Taruhan</button>
+                <button class="casino-btn btn-primary btn-deal" id="deal-btn" data-i18n="deal">BAGIKAN (DEAL)</button>
+            </div>
+
+            <!-- GAMEPLAY ACTIONS (during PLAYER_TURNS phase) -->
+            <div class="controls-action-bar" id="action-controls-rack" style="display: none;">
+                <button class="casino-btn btn-action btn-hit" id="hit-btn" data-i18n="hit">TAMBAH (HIT)</button>
+                <button class="casino-btn btn-action btn-stand" id="stand-btn" data-i18n="stand">CUKUP (STAND)</button>
+                <button class="casino-btn btn-action btn-double" id="double-down-btn" data-i18n="double_down">LIPAT TARUHAN (DOUBLE)</button>
+                <button class="casino-btn btn-action btn-split" id="split-btn" data-i18n="split">PISAH KARTU (SPLIT)</button>
+                <button class="casino-btn btn-action btn-surrender" id="surrender-btn" data-i18n="surrender">MENYERAH (SURRENDER)</button>
+            </div>
+
+        </footer>
+    </div>
+
+    <!-- MODAL: MULTIPLAYER LOBBY -->
+    <div class="casino-modal-overlay" id="multiplayer-modal">
+        <div class="casino-modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" data-i18n="multiplayer_btn">👥 Meja Multiplayer</h3>
+                <button class="modal-close-btn" onclick="document.getElementById('multiplayer-modal').classList.remove('active')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="multiplayer-tabs">
+                    <button class="mp-tab active" id="tab-host-btn" onclick="switchMpTab('host')">Host Ruangan</button>
+                    <button class="mp-tab" id="tab-join-btn" onclick="switchMpTab('join')">Gabung Ruangan</button>
+                    <button class="mp-tab" id="tab-local-btn" onclick="switchMpTab('local')">Meja Lokal / Bot</button>
+                </div>
+
+                <!-- Host Panel -->
+                <div class="mp-panel" id="panel-host">
+                    <p class="mp-desc">Buat meja pribadi dan bagikan kode ruangan kepada teman-teman Anda untuk bermain bersama secara online real-time!</p>
+                    <button class="casino-btn btn-primary" id="btn-create-room" data-i18n="create_room">Buat Meja Baru (Host)</button>
+                    <div id="room-created-box" style="display:none; margin-top:16px;">
+                        <span data-i18n="room_created">Meja dibuat! Bagikan kode kepada teman:</span>
+                        <div class="room-code-tag">
+                            <span id="display-room-code">------</span>
+                            <button class="copy-btn" id="btn-copy-code" data-i18n="copy_code">Salin Kode</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Join Panel -->
+                <div class="mp-panel" id="panel-join" style="display:none;">
+                    <p class="mp-desc">Masukkan 6-karakter kode ruangan dari teman Anda untuk langsung duduk di meja yang sama:</p>
+                    <div class="join-input-group">
+                        <input type="text" id="join-room-code-input" maxlength="6" placeholder="KODE RUANGAN (misal: ACE21)" style="text-transform:uppercase;">
+                        <button class="casino-btn btn-primary" id="btn-submit-join" data-i18n="join_room">Gabung Meja</button>
+                    </div>
+                </div>
+
+                <!-- Local / Bot Settings Panel -->
+                <div class="mp-panel" id="panel-local" style="display:none;">
+                    <div class="toggle-option-row">
+                        <div>
+                            <strong>Isi Kursi Kosong dengan AI Bot</strong>
+                            <p class="opt-desc">Bot AI akan duduk dan bertaruh secara otomatis sesuai strategi dasar.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-bots-chk" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button class="casino-btn btn-secondary" onclick="window.game.setGameMode('solo'); document.getElementById('multiplayer-modal').classList.remove('active');">
+                            Mainkan Mode Meja Tunggal (Solo)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- In-Table Live Chat -->
+                <div class="table-chat-section">
+                    <h4>💬 Obrolan Meja</h4>
+                    <div class="chat-messages-box" id="chat-messages-container">
+                        <div class="chat-bubble system">Selamat datang di Royal Palace VIP Table!</div>
+                    </div>
+                    <div class="chat-input-row">
+                        <input type="text" id="chat-input-field" placeholder="Kirim pesan ke meja...">
+                        <button class="chat-send-btn" id="chat-send-btn">Kirim</button>
+                    </div>
+                    <div class="emoji-bar">
+                        <button class="emoji-btn" onclick="window.game.sendChatMessage('🔥 Good luck semuanya!')">🔥</button>
+                        <button class="emoji-btn" onclick="window.game.sendChatMessage('💰 Blackjack time!')">💰</button>
+                        <button class="emoji-btn" onclick="window.game.sendChatMessage('👏 Nice hand!')">👏</button>
+                        <button class="emoji-btn" onclick="window.game.sendChatMessage('😱 Waduh Bust!')">😱</button>
+                        <button class="emoji-btn" onclick="window.game.sendChatMessage('🍀 Luck is with us!')">🍀</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: STRATEGY CHART -->
+    <div class="casino-modal-overlay" id="strategy-modal">
+        <div class="casino-modal-card large">
+            <div class="modal-header">
+                <h3 class="modal-title">💡 Matriks Strategi Dasar Resmi (Vegas Strip S17)</h3>
+                <button class="modal-close-btn" onclick="document.getElementById('strategy-modal').classList.remove('active')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="chart-desc">Bagan ini menunjukkan keputusan dengan probabilitas matematis terbaik berdasarkan nilai tangan Anda dan kartu terbuka (upcard) Dealer.</p>
+                <div class="strategy-legend">
+                    <span class="legend-badge leg-h">H = Hit</span>
+                    <span class="legend-badge leg-s">S = Stand</span>
+                    <span class="legend-badge leg-d">D = Double (jika tidak boleh, Hit)</span>
+                    <span class="legend-badge leg-p">P = Split</span>
+                    <span class="legend-badge leg-rh">Rh = Surrender (jika tidak boleh, Hit)</span>
+                </div>
+                <div class="strategy-table-scroll">
+                    <table class="strategy-chart-table">
+                        <thead>
+                            <tr>
+                                <th>Tangan Pemain</th>
+                                <th>2</th><th>3</th><th>4</th><th>5</th><th>6</th>
+                                <th>7</th><th>8</th><th>9</th><th>10</th><th>A</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="section-divider"><td colspan="11">HARD TOTALS</td></tr>
+                            <tr><td>17-20</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td></tr>
+                            <tr><td>16</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-rh">Rh</td><td class="leg-rh">Rh</td><td class="leg-rh">Rh</td></tr>
+                            <tr><td>15</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-rh">Rh</td><td class="leg-h">H</td></tr>
+                            <tr><td>13 - 14</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td></tr>
+                            <tr><td>12</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td></tr>
+                            <tr><td>11</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td></tr>
+                            <tr><td>10</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-h">H</td><td class="leg-h">H</td></tr>
+                            <tr><td>9</td><td class="leg-h">H</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td></tr>
+                            
+                            <tr class="section-divider"><td colspan="11">SOFT TOTALS (DENGAN AS)</td></tr>
+                            <tr><td>A,8 - A,9</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td></tr>
+                            <tr><td>A,7</td><td class="leg-s">S</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td></tr>
+                            <tr><td>A,6</td><td class="leg-h">H</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td></tr>
+                            <tr><td>A,4 - A,5</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-d">D</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td><td class="leg-h">H</td></tr>
+
+                            <tr class="section-divider"><td colspan="11">PAIRS (PASANGAN UNTUK SPLIT)</td></tr>
+                            <tr><td>A,A</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td></tr>
+                            <tr><td>10,10</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td><td class="leg-s">S</td></tr>
+                            <tr><td>8,8</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td></tr>
+                            <tr><td>9,9</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-s">S</td><td class="leg-p">P</td><td class="leg-p">P</td><td class="leg-s">S</td><td class="leg-s">S</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: OFFICIAL RULES GUIDE -->
+    <div class="casino-modal-overlay" id="rules-modal">
+        <div class="casino-modal-card large">
+            <div class="modal-header">
+                <h3 class="modal-title" data-i18n="rules_header">Aturan Kasino Resmi (Vegas Strip S17)</h3>
+                <button class="modal-close-btn" onclick="document.getElementById('rules-modal').classList.remove('active')">&times;</button>
+            </div>
+            <div class="modal-body rules-content">
+                <div class="rule-block">
+                    <h4>🎴 1. Shoe & Dek Kartu</h4>
+                    <p data-i18n="rules_desc_1">Permainan menggunakan Shoe 6-Dek standar internasional (312 kartu) yang dikocok acak dengan cut card pada kedalaman ~75%. Kartu pertama setelah pengocokan dibakar (burn card).</p>
+                </div>
+                <div class="rule-block">
+                    <h4>🔢 2. Nilai Kartu & Hand</h4>
+                    <p data-i18n="rules_desc_2">Nilai Kartu: Angka 2-10 sesuai nominal; J, Q, K bernilai 10; As (Ace) bernilai 1 atau 11 (Soft/Hard Hand) sesuai kondisi terbaik tanpa melewati 21.</p>
+                </div>
+                <div class="rule-block">
+                    <h4>⭐ 3. Blackjack Alami (Natural Blackjack)</h4>
+                    <p data-i18n="rules_desc_3">Blackjack Alami: Mendapat kartu As dan kartu bernilai 10 pada 2 kartu pertama, membayar 3:2 (150% keuntungan). Mengalahkan semua kombinasi kartu dealer kecuali dealer juga memiliki Blackjack (Seri/Push).</p>
+                </div>
+                <div class="rule-block">
+                    <h4>👁️ 4. Aturan Intip Dealer (Vegas Peek Rule)</h4>
+                    <p data-i18n="rules_desc_4">Aturan Intip Dealer (Vegas Peek): Jika kartu terbuka dealer adalah As atau kartu bernilai 10, dealer memeriksa kartu tertutupnya (Hole Card). Jika dealer memiliki Blackjack, babak langsung selesai.</p>
+                </div>
+                <div class="rule-block">
+                    <h4>🎮 5. Keputusan Pemain</h4>
+                    <ul>
+                        <li><strong data-i18n="rules_desc_5_hit">Hit:</strong> Menambah 1 kartu hingga puas atau BUST (>21).</li>
+                        <li><strong data-i18n="rules_desc_5_stand">Stand:</strong> Mengakhiri giliran dan mempertahankan total kartu.</li>
+                        <li><strong data-i18n="rules_desc_5_double">Double Down:</strong> Menggandakan taruhan, menerima tepat 1 kartu tambahan, lalu otomatis Stand.</li>
+                        <li><strong data-i18n="rules_desc_5_split">Split:</strong> Memisahkan pasangan kartu bernilai sama menjadi 2 tangan terpisah. Split As hanya menerima 1 kartu.</li>
+                        <li><strong data-i18n="rules_desc_5_surrender">Late Surrender:</strong> Menyerahkan kartu awal sebelum aksi lain, mengembalikan 50% taruhan.</li>
+                    </ul>
+                </div>
+                <div class="rule-block">
+                    <h4>🛡️ 6. Asuransi & Even Money</h4>
+                    <p data-i18n="rules_desc_6">Jika kartu terbuka dealer adalah As, pemain dapat memasang Asuransi (50% dari taruhan utama). Jika dealer mendapatkan Blackjack, Asuransi membayar 2:1. Jika pemain memiliki Blackjack saat dealer memegang As, pemain dapat memilih Even Money (bayaran pasti 1:1).</p>
+                </div>
+                <div class="rule-block">
+                    <h4>🤵 7. Regulasi Dealer</h4>
+                    <p data-i18n="rules_desc_7">Dealer selalu membuka kartu kedua setelah semua pemain selesai. Dealer WAJIB menambah kartu pada nilai 16 ke bawah, dan WAJIB Stand pada nilai 17 ke atas (termasuk Soft 17).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: STATS -->
+    <div class="casino-modal-overlay" id="stats-modal">
+        <div class="casino-modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" data-i18n="stats_btn">📊 Statistik Permainan</h3>
+                <button class="modal-close-btn" onclick="document.getElementById('stats-modal').classList.remove('active')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-label" data-i18n="hands_played">Putaran</span>
+                        <span class="stat-val" id="stat-rounds">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label" data-i18n="win_rate">Menang / Kalah / Seri</span>
+                        <span class="stat-val" id="stat-wlp">0 / 0 / 0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Blackjacks</span>
+                        <span class="stat-val" id="stat-bj-count">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label" data-i18n="streak">Win Streak Terbaik</span>
+                        <span class="stat-val" id="stat-streak">0</span>
+                    </div>
+                    <div class="stat-card full-width">
+                        <span class="stat-label" data-i18n="net_profit">Keuntungan Bersih</span>
+                        <span class="stat-val profit" id="stat-profit">$0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: INSURANCE OFFER -->
+    <div class="casino-modal-overlay" id="insurance-modal">
+        <div class="casino-modal-card small">
+            <h3 class="modal-title" data-i18n="insurance_title">Tawaran Asuransi</h3>
+            <p class="modal-body-text" id="insurance-modal-desc">Dealer menunjukkan As. Pasang Asuransi?</p>
+            <div class="dialog-action-buttons">
+                <button class="casino-btn btn-primary" id="insurance-yes-btn" data-i18n="insurance_yes">Ya, Asuransi (50%)</button>
+                <button class="casino-btn btn-secondary" id="insurance-no-btn" data-i18n="insurance_no">Tidak, Lewati</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EVEN MONEY OFFER -->
+    <div class="casino-modal-overlay" id="even-money-modal">
+        <div class="casino-modal-card small">
+            <h3 class="modal-title" data-i18n="even_money_title">Tawaran Even Money</h3>
+            <p class="modal-body-text" id="even-money-modal-desc">Anda memiliki Blackjack! Ambil bayaran 1:1 sekarang?</p>
+            <div class="dialog-action-buttons">
+                <button class="casino-btn btn-primary" id="even-money-yes-btn" data-i18n="even_money_yes">Ambil 1:1 (Even Money)</button>
+                <button class="casino-btn btn-secondary" id="even-money-no-btn" data-i18n="even_money_no">Mainkan (3:2)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div class="casino-toast-msg" id="casino-toast">Pesan Kasino</div>
+
+    <!-- JAVASCRIPT MODULES -->
+    <script src="js/audio.js"></script>
+    <script src="js/rules.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/peer-multiplayer.js"></script>
+    <script src="js/game.js"></script>
+    <script>
+        // Tab switching in Multiplayer Modal
+        function switchMpTab(tab) {
+            document.querySelectorAll('.mp-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.mp-panel').forEach(p => p.style.display = 'none');
+            
+            const btn = document.getElementById(`tab-${tab}-btn`);
+            const panel = document.getElementById(`panel-${tab}`);
+            if (btn) btn.classList.add('active');
+            if (panel) panel.style.display = 'block';
+        }
+
+        // Initialize application on DOM ready
+        window.addEventListener('DOMContentLoaded', () => {
+            window.game = new BlackjackGame();
+
+            // Language Switch
+            document.getElementById('lang-id-btn').addEventListener('click', () => {
+                window.i18n.setLanguage('id');
+                window.game.renderSeats();
+                window.game.updateControlButtons();
+            });
+            document.getElementById('lang-en-btn').addEventListener('click', () => {
+                window.i18n.setLanguage('en');
+                window.game.renderSeats();
+                window.game.updateControlButtons();
+            });
+
+            // Top Buttons
+            document.getElementById('refill-bankroll-btn').addEventListener('click', () => {
+                window.game.refillBankroll();
+            });
+            document.getElementById('sound-btn').addEventListener('click', function() {
+                const muted = window.soundEngine.toggleMute();
+                this.textContent = muted ? '🔇' : '🔊';
+            });
+            document.getElementById('strategy-btn').addEventListener('click', () => {
+                document.getElementById('strategy-modal').classList.add('active');
+            });
+            document.getElementById('rules-btn').addEventListener('click', () => {
+                document.getElementById('rules-modal').classList.add('active');
+            });
+            document.getElementById('multiplayer-btn').addEventListener('click', () => {
+                document.getElementById('multiplayer-modal').classList.add('active');
+            });
+            document.getElementById('stats-btn').addEventListener('click', () => {
+                const st = window.game.stats;
+                document.getElementById('stat-rounds').textContent = st.roundsPlayed;
+                document.getElementById('stat-wlp').textContent = `${st.wins} / ${st.losses} / ${st.pushes}`;
+                document.getElementById('stat-bj-count').textContent = st.blackjacks;
+                document.getElementById('stat-streak').textContent = st.bestStreak;
+                const profitEl = document.getElementById('stat-profit');
+                profitEl.textContent = (st.netProfit >= 0 ? '+$' : '-$') + Math.abs(st.netProfit).toLocaleString();
+                profitEl.className = 'stat-val ' + (st.netProfit >= 0 ? 'profit' : 'loss');
+                document.getElementById('stats-modal').classList.add('active');
+            });
+
+            // Chip Selector
+            document.querySelectorAll('.chip-selector-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    window.game.selectChip(parseInt(btn.dataset.value));
+                });
+            });
+
+            // Betting Action Buttons
+            document.getElementById('clear-bet-btn').addEventListener('click', () => window.game.clearAllBets());
+            document.getElementById('double-bet-btn').addEventListener('click', () => window.game.doubleAllBets());
+            document.getElementById('rebet-btn').addEventListener('click', () => window.game.rebetAll());
+            document.getElementById('deal-btn').addEventListener('click', () => window.game.startDeal());
+
+            // Player Gameplay Action Buttons
+            document.getElementById('hit-btn').addEventListener('click', () => window.game.hitAction());
+            document.getElementById('stand-btn').addEventListener('click', () => window.game.standAction());
+            document.getElementById('double-down-btn').addEventListener('click', () => window.game.doubleDownAction());
+            document.getElementById('split-btn').addEventListener('click', () => window.game.splitAction());
+            document.getElementById('surrender-btn').addEventListener('click', () => window.game.surrenderAction());
+
+            // Multiplayer Host / Join
+            document.getElementById('btn-create-room').addEventListener('click', () => {
+                window.game.multiplayer.createRoom();
+            });
+            document.getElementById('btn-copy-code').addEventListener('click', () => {
+                const code = document.getElementById('display-room-code').textContent;
+                navigator.clipboard.writeText(code);
+                window.game.showToast(window.i18n.t('code_copied'));
+            });
+            document.getElementById('btn-submit-join').addEventListener('click', () => {
+                const input = document.getElementById('join-room-code-input');
+                if (input && input.value.trim().length >= 4) {
+                    window.game.multiplayer.joinRoom(input.value.trim());
+                }
+            });
+
+            // Bot toggle
+            const botToggle = document.getElementById('toggle-bots-chk');
+            if (botToggle) {
+                botToggle.addEventListener('change', (e) => {
+                    window.game.botsEnabled = e.target.checked;
+                    window.game.updateBotsInSeats();
+                    window.game.renderSeats();
+                });
+            }
+
+            // In-Table Chat
+            const sendChat = () => {
+                const inp = document.getElementById('chat-input-field');
+                if (inp && inp.value.trim()) {
+                    window.game.sendChatMessage(inp.value.trim());
+                    inp.value = '';
+                }
+            };
+            document.getElementById('chat-send-btn').addEventListener('click', sendChat);
+            document.getElementById('chat-input-field').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendChat();
+            });
+
+            // Initial render
+            window.i18n.updateDOM();
+            window.game.renderHeader();
+            window.game.renderDealer();
+            window.game.renderSeats();
+            window.game.updateControlButtons();
+        });
+    </script>
+</body>
+</html>
