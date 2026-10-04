@@ -22,9 +22,9 @@
     --accent-win: #22c55e;
     --accent-bust: #ef4444;
     --accent-push: #eab308;
-    --shadow-table: 0 25px 60px rgba(0, 0, 0, 0.85);
-    --card-width: 72px;
-    --card-height: 104px;
+    --shadow-table: 0 15px 40px rgba(0, 0, 0, 0.85);
+    --card-width: clamp(48px, 4.4vw, 64px);
+    --card-height: clamp(70px, 6.4vw, 92px);
 }
 
 * {
@@ -33,12 +33,13 @@
     box-sizing: border-box;
 }
 
-body {
+html, body {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
     font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: var(--bg-dark);
     color: var(--text-primary);
-    min-height: 100vh;
-    overflow-x: hidden;
     user-select: none;
     -webkit-font-smoothing: antialiased;
 }
@@ -62,11 +63,15 @@ body {
     z-index: 1;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
     width: 100%;
     max-width: 1680px;
     margin: 0 auto;
-    padding: 10px 18px;
+    padding: 6px 14px;
+    justify-content: space-between;
+    box-sizing: border-box;
 }
 
 /* ==========================================================================
@@ -76,15 +81,15 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 24px;
+    padding: 6px 14px;
     background: var(--panel-bg);
     backdrop-filter: blur(14px);
     border: 1px solid var(--panel-border);
-    border-radius: 14px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-    margin-bottom: 12px;
-    gap: 16px;
-    flex-wrap: wrap;
+    border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+    margin-bottom: 4px;
+    gap: 12px;
+    flex-shrink: 0;
 }
 
 .header-left {
@@ -308,35 +313,46 @@ body {
    ========================================================================== */
 .blackjack-table-area {
     flex: 1;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 0;
+    padding: 2px 0;
+    overflow: hidden;
+    width: 100%;
 }
 
 .table-outer-rim {
     width: 100%;
-    max-width: 1420px;
+    max-width: 1380px;
+    height: 100%;
+    max-height: calc(100vh - 142px);
     background: linear-gradient(180deg, #1b0c06 0%, #30170c 50%, #150904 100%);
-    border-radius: 280px 280px 120px 120px;
-    padding: 24px;
-    box-shadow: var(--shadow-table), inset 0 2px 10px rgba(255, 200, 100, 0.15);
-    border: 4px solid #4a2717;
+    border-radius: 200px 200px 80px 80px;
+    padding: 10px 16px;
+    box-shadow: var(--shadow-table), inset 0 2px 8px rgba(255, 200, 100, 0.15);
+    border: 3px solid #4a2717;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
 }
 
 .table-felt {
     width: 100%;
-    min-height: 540px;
+    height: 100%;
+    min-height: 0;
     background: radial-gradient(ellipse at 50% 25%, var(--felt-center) 0%, var(--felt-mid) 55%, var(--felt-dark) 100%);
-    border-radius: 250px 250px 90px 90px;
-    border: 3px solid rgba(212, 175, 55, 0.35);
-    box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.75), inset 0 0 15px rgba(212, 175, 55, 0.2);
+    border-radius: 180px 180px 60px 60px;
+    border: 2px solid rgba(212, 175, 55, 0.35);
+    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.75), inset 0 0 12px rgba(212, 175, 55, 0.2);
     position: relative;
-    padding: 24px 30px;
+    padding: 8px 18px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 /* DEALER SECTION */
@@ -345,25 +361,25 @@ body {
     flex-direction: column;
     align-items: center;
     position: relative;
-    margin-top: 10px;
+    margin-top: 2px;
 }
 
 .dealer-info-card {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     background: rgba(0, 0, 0, 0.55);
     border: 1px solid rgba(212, 175, 55, 0.4);
-    padding: 5px 16px;
-    border-radius: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    padding: 3px 12px;
+    border-radius: 16px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
     z-index: 2;
 }
 
 .dealer-badge {
     font-family: 'Cinzel', serif;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: var(--gold-light);
     letter-spacing: 1.5px;
 }
@@ -372,31 +388,31 @@ body {
     background: var(--gold-gradient);
     color: #1a1202;
     font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    min-width: 24px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    min-width: 22px;
     text-align: center;
 }
 
 .dealer-shoe-graphic {
     position: absolute;
-    right: 40px;
+    right: 24px;
     top: 0;
-    width: 65px;
-    height: 75px;
+    width: 48px;
+    height: 56px;
     background: linear-gradient(135deg, #181818 0%, #353535 50%, #1a1a1a 100%);
     border: 2px solid var(--gold-dark);
-    border-radius: 8px 8px 18px 4px;
+    border-radius: 6px 6px 14px 3px;
     transform: rotate(18deg);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .shoe-label {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     font-weight: 800;
     color: var(--gold-primary);
     letter-spacing: 0.5px;
@@ -406,43 +422,43 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    margin-top: 14px;
+    gap: 6px;
+    margin-top: 6px;
     min-height: var(--card-height);
 }
 
 /* TABLE CENTER EMBOSS & ANNOUNCER */
 .table-center-felt-art {
     text-align: center;
-    margin: 15px 0;
+    margin: 2px 0;
     position: relative;
     pointer-events: none;
 }
 
 .felt-gold-arc {
     font-family: 'Cinzel', serif;
-    font-size: 1.45rem;
+    font-size: clamp(0.95rem, 1.4vw, 1.25rem);
     font-weight: 800;
     color: rgba(247, 224, 137, 0.45);
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .felt-gold-subarc {
-    font-size: 0.72rem;
+    font-size: clamp(0.52rem, 0.75vw, 0.65rem);
     font-weight: 600;
     color: rgba(247, 224, 137, 0.35);
-    letter-spacing: 2px;
-    margin-top: 4px;
+    letter-spacing: 1.5px;
+    margin-top: 2px;
 }
 
 .table-announcer-banner {
     display: inline-block;
-    margin-top: 12px;
-    padding: 8px 24px;
+    margin-top: 4px;
+    padding: 4px 18px;
     background: rgba(10, 14, 20, 0.85);
     border: 1px solid var(--gold-primary);
-    border-radius: 30px;
+    border-radius: 20px;
     color: var(--gold-light);
     font-size: 0.95rem;
     font-weight: 700;
@@ -465,14 +481,14 @@ body {
     display: flex;
     justify-content: space-around;
     align-items: flex-end;
-    gap: 12px;
+    gap: 6px;
     width: 100%;
-    margin-top: 10px;
+    margin-top: 0;
 }
 
 .table-seat {
     flex: 1;
-    max-width: 230px;
+    max-width: 200px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -481,11 +497,11 @@ body {
 }
 
 /* Elevation curve for seats (semi-circle effect) */
-.table-seat:nth-child(1) { transform: translateY(-20px) rotate(6deg); }
-.table-seat:nth-child(2) { transform: translateY(-6px) rotate(3deg); }
+.table-seat:nth-child(1) { transform: translateY(-8px) rotate(4deg); }
+.table-seat:nth-child(2) { transform: translateY(-2px) rotate(2deg); }
 .table-seat:nth-child(3) { transform: translateY(0px); }
-.table-seat:nth-child(4) { transform: translateY(-6px) rotate(-3deg); }
-.table-seat:nth-child(5) { transform: translateY(-20px) rotate(-6deg); }
+.table-seat:nth-child(4) { transform: translateY(-2px) rotate(-2deg); }
+.table-seat:nth-child(5) { transform: translateY(-8px) rotate(-4deg); }
 
 /* Glowing Active Turn Indicator */
 .table-seat.active-turn {
@@ -509,10 +525,10 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 130px;
-    height: 120px;
+    width: 90px;
+    height: 75px;
     border: 2px dashed rgba(255, 255, 255, 0.25);
-    border-radius: 20px;
+    border-radius: 12px;
     background: rgba(0, 0, 0, 0.2);
     cursor: pointer;
     transition: all 0.2s;
@@ -526,33 +542,33 @@ body {
     transform: scale(1.04);
 }
 
-.sit-icon { font-size: 26px; margin-bottom: 6px; }
-.sit-text { font-size: 0.75rem; font-weight: 700; }
+.sit-icon { font-size: 18px; margin-bottom: 2px; }
+.sit-text { font-size: 0.65rem; font-weight: 700; }
 
 /* Occupied Player Tag */
 .player-tag {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     background: rgba(14, 20, 28, 0.85);
     border: 1px solid rgba(212, 175, 55, 0.3);
-    padding: 3px 10px;
-    border-radius: 14px;
-    font-size: 0.75rem;
-    margin-bottom: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 0.68rem;
+    margin-bottom: 3px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
 }
 
-.player-tag .avatar { font-size: 1rem; }
-.player-tag .name { font-weight: 700; color: #fff; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-tag .avatar { font-size: 0.85rem; }
+.player-tag .name { font-weight: 700; color: #fff; max-width: 75px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .player-tag .bankroll { color: var(--gold-light); font-weight: 700; }
 
 /* Seat Hands & Cards */
 .seat-hands-wrapper {
     display: flex;
-    gap: 10px;
+    gap: 6px;
     min-height: var(--card-height);
-    margin-bottom: 8px;
+    margin-bottom: 3px;
 }
 
 .seat-hand {
@@ -573,18 +589,18 @@ body {
 }
 
 .cards-fan .playing-card:not(:first-child) {
-    margin-left: -46px; /* overlapping card stack fan */
+    margin-left: -36px; /* overlapping card stack fan */
 }
 
 .hand-score-tag {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 800;
-    padding: 2px 7px;
-    border-radius: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
     background: rgba(0, 0, 0, 0.65);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: #fff;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .hand-score-tag.bj {
@@ -602,10 +618,10 @@ body {
 .hand-result-badge {
     position: absolute;
     bottom: -10px;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
     white-space: nowrap;
     z-index: 5;
     animation: popIn 0.3s ease-out;
@@ -634,8 +650,8 @@ body {
 
 /* Betting Circle Spot */
 .betting-circle {
-    width: 90px;
-    height: 90px;
+    width: clamp(52px, 4.8vw, 66px);
+    height: clamp(52px, 4.8vw, 66px);
     border-radius: 50%;
     border: 2px dashed rgba(212, 175, 55, 0.5);
     background: radial-gradient(circle, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.65) 100%);
@@ -645,7 +661,7 @@ body {
     justify-content: center;
     position: relative;
     cursor: pointer;
-    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.6);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.6);
     transition: all 0.2s;
 }
 
@@ -656,7 +672,7 @@ body {
 }
 
 .bet-label {
-    font-size: 0.72rem;
+    font-size: 0.65rem;
     font-weight: 700;
     color: var(--gold-light);
     z-index: 4;
@@ -796,47 +812,49 @@ body {
    ========================================================================== */
 .casino-control-footer {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 14px;
-    padding: 12px 24px;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 16px;
     background: var(--panel-bg);
     backdrop-filter: blur(16px);
     border: 1px solid var(--panel-border);
-    border-radius: 14px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-    margin-top: 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    margin-top: 4px;
+    flex-shrink: 0;
 }
 
 .chip-rack-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
-    flex-wrap: wrap;
+    gap: 8px;
+    flex-wrap: nowrap;
 }
 
 .chip-selector-btn {
-    width: 58px;
-    height: 58px;
+    width: clamp(38px, 3.6vw, 46px);
+    height: clamp(38px, 3.6vw, 46px);
     border-radius: 50%;
     cursor: pointer;
     font-weight: 800;
-    font-size: 0.85rem;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5), inset 0 0 6px rgba(255, 255, 255, 0.4);
-    border: 4px dashed rgba(255, 255, 255, 0.6);
+    font-size: 0.72rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 0 4px rgba(255, 255, 255, 0.4);
+    border: 3px dashed rgba(255, 255, 255, 0.6);
     transition: all 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
     position: relative;
 }
 
 .chip-selector-btn:hover {
-    transform: translateY(-6px) scale(1.08);
+    transform: translateY(-4px) scale(1.08);
 }
 
 .chip-selector-btn.selected {
-    transform: translateY(-8px) scale(1.12);
-    box-shadow: 0 10px 22px rgba(212, 175, 55, 0.6), 0 0 15px rgba(212, 175, 55, 0.7);
-    outline: 3px solid #ffe082;
+    transform: translateY(-5px) scale(1.12);
+    box-shadow: 0 6px 16px rgba(212, 175, 55, 0.6), 0 0 10px rgba(212, 175, 55, 0.7);
+    outline: 2px solid #ffe082;
 }
 
 .chip-btn-1 { background: radial-gradient(circle, #f8fafc 40%, #cbd5e1 90%); color: #0f172a; border-color: #64748b; }
@@ -850,18 +868,18 @@ body {
 .controls-action-bar {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 14px;
-    flex-wrap: wrap;
-    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: nowrap;
+    width: auto;
 }
 
 .casino-btn {
     font-family: 'Montserrat', sans-serif;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 700;
-    padding: 10px 22px;
-    border-radius: 10px;
+    padding: 7px 15px;
+    border-radius: 8px;
     cursor: pointer;
     border: none;
     transition: all 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
@@ -869,6 +887,7 @@ body {
     align-items: center;
     justify-content: center;
     letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 .casino-btn:disabled {
@@ -879,7 +898,7 @@ body {
 }
 
 .casino-btn:not(:disabled):hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
 }
 
 .casino-btn:not(:disabled):active {
@@ -889,17 +908,17 @@ body {
 .btn-primary {
     background: var(--gold-gradient);
     color: #1a1202;
-    box-shadow: 0 4px 18px rgba(212, 175, 55, 0.45);
+    box-shadow: 0 3px 14px rgba(212, 175, 55, 0.45);
     font-weight: 800;
 }
 
 .btn-primary:not(:disabled):hover {
-    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.65);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.65);
 }
 
 .btn-deal {
-    padding: 12px 36px;
-    font-size: 1.05rem;
+    padding: 9px 24px;
+    font-size: 0.92rem;
     font-family: 'Cinzel', serif;
 }
 

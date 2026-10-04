@@ -68,6 +68,7 @@
                 </div>
 
                 <div class="top-nav-actions">
+                    <button class="nav-icon-btn" id="fullscreen-btn" title="Layar Penuh (Fullscreen)">⛶</button>
                     <button class="nav-icon-btn" id="strategy-btn" data-i18n-title="strategy_btn" title="Saran Strategi">💡</button>
                     <button class="nav-icon-btn" id="multiplayer-btn" data-i18n-title="multiplayer_btn" title="Multiplayer">👥</button>
                     <button class="nav-icon-btn" id="stats-btn" data-i18n-title="stats_btn" title="Statistik">📊</button>
@@ -473,6 +474,14 @@
                 btn.addEventListener('click', () => {
                     window.game.selectChip(parseInt(btn.dataset.value));
                 });
+            });
+
+            document.getElementById('fullscreen-btn').addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
             });
 
             // Betting Action Buttons

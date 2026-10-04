@@ -177,9 +177,18 @@ class BlackjackGame {
             if (seat.player.id !== this.multiplayer.myPlayerId) return;
         }
 
+        if (seat.player.bankroll <= 0 && seat.hands[0].bet === 0) {
+            this.checkAndGrantZeroBalanceBonus();
+            return;
+        }
+
         const addAmount = amount || this.selectedChip;
         if (seat.player.bankroll < addAmount) {
-            this.showToast('Saldo tidak mencukupi untuk taruhan ini!');
+            if (seat.player.bankroll <= 0) {
+                this.checkAndGrantZeroBalanceBonus();
+            } else {
+                this.showToast('Saldo tidak mencukupi untuk taruhan ini!');
+            }
             return;
         }
 
@@ -1021,7 +1030,10 @@ class BlackjackGame {
         this.renderSeats();
         this.renderHeader();
 
-        // Round complete, transition to Betting phase
+        // Round complete, check for zero-balance emergency bonus
+        this.checkAndGrantZeroBalanceBonus();
+
+        // Transition to Betting phase
         this.phase = 'ROUND_OVER';
         this.updateControlButtons();
         await this.sleep(2500);
@@ -1048,11 +1060,39 @@ class BlackjackGame {
             seat.insuranceResult = null;
         });
 
+        // Grant free $100 bonus ONLY for player whose balance is 0
+        this.checkAndGrantZeroBalanceBonus();
+
         this.renderDealer();
         this.renderSeats();
         this.renderHeader();
         this.updateControlButtons();
         this.showAnnouncer(window.i18n.t('place_bets'));
+    }
+
+    checkAndGrantZeroBalanceBonus() {
+        let grantedToMe = false;
+        this.seats.forEach(seat => {
+            if (seat.occupied && seat.player) {
+                // Strictly only for player whose balance is 0
+                if (seat.player.bankroll <= 0 && seat.hands.every(h => h.bet === 0)) {
+                    seat.player.bankroll = 100;
+                    if (seat.player.isLocal && seat.player.id === this.multiplayer.myPlayerId) {
+                        this.myBankroll = 100;
+                        grantedToMe = true;
+                    } else if (!seat.player.isBot) {
+                        this.showToast(`🎁 ${seat.player.name} kehabisan saldo dan menerima bantuan kasino $100!`);
+                    }
+                }
+            }
+        });
+
+        if (grantedToMe) {
+            window.soundEngine.playWin();
+            this.showToast("🎁 Saldo Anda $0! Kasino memberikan saldo darurat gratis $100!");
+            this.renderHeader();
+            this.renderSeats();
+        }
     }
 
     // UI RENDERING HELPERS
@@ -1327,16 +1367,21 @@ class BlackjackGame {
     }
 
     refillBankroll() {
-        this.myBankroll += 2500;
-        this.seats.forEach(seat => {
-            if (seat.occupied && seat.player && seat.player.isLocal && seat.player.id === this.multiplayer.myPlayerId) {
-                seat.player.bankroll = this.myBankroll;
-            }
-        });
-        window.soundEngine.playChipStack();
-        this.renderHeader();
-        this.renderSeats();
-        this.showToast(window.i18n.t('refilled_msg'));
+        if (this.myBankroll <= 0) {
+            this.myBankroll = 100;
+            this.seats.forEach(seat => {
+                if (seat.occupied && seat.player && seat.player.isLocal && seat.player.id === this.multiplayer.myPlayerId) {
+                    seat.player.bankroll = 100;
+                }
+            });
+            window.soundEngine.playChipStack();
+            this.renderHeader();
+            this.renderSeats();
+            this.saveStats();
+            this.showToast("🎁 Saldo Anda $0! Saldo darurat gratis $100 berhasil diberikan!");
+        } else {
+            this.showToast(`⚠️ Saldo gratis $100 hanya diberikan jika saldo Anda $0! (Saldo saat ini: $${this.myBankroll.toLocaleString()})`);
+        }
     }
 
     // MULTIPLAYER HANDLERS
