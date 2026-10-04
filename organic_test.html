@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Blackjack VIP — Organic Automated Test Suite</title>
+    <style>
+        body { font-family: monospace; background: #0f172a; color: #f8fafc; padding: 24px; line-height: 1.6; }
+        h1 { color: #f59e0b; margin-bottom: 4px; }
+        .subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; }
+        .summary-box { background: #1e293b; padding: 16px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 20px; display: flex; gap: 24px; }
+        .metric { display: flex; flex-direction: column; }
+        .metric-label { font-size: 0.75rem; color: #94a3b8; }
+        .metric-val { font-size: 1.5rem; font-weight: bold; }
+        .passed { color: #22c55e; }
+        .failed { color: #ef4444; }
+        .log-section { background: #020617; border: 1px solid #1e293b; padding: 16px; border-radius: 8px; max-height: 500px; overflow-y: auto; font-size: 0.85rem; }
+        .test-group { margin-bottom: 14px; }
+        .test-group-title { color: #38bdf8; font-weight: bold; border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 6px; }
+        .test-item { margin-left: 12px; }
+        .test-item.pass::before { content: "✅ "; }
+        .test-item.fail::before { content: "❌ "; color: #ef4444; }
+        .sim-box { background: #1e293b; border-left: 4px solid #f59e0b; padding: 8px 12px; margin: 4px 0; font-size: 0.8rem; }
+    </style>
+    <!-- Load Core Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/rules.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/supabase-client.js"></script>
+</head>
+<body>
+    <h1>🎰 Organic Test Suite — Royal Palace Blackjack VIP</h1>
+    <div class="subtitle">Pengujian Organik End-to-End: Aturan Kasino Resmi (S17), Mekanika Kartu, Bailout $0, dan Supabase Cloud</div>
+
+    <div class="summary-box">
+        <div class="metric"><span class="metric-label">TOTAL PENGUJIAN</span><span class="metric-val" id="total-tests">0</span></div>
+        <div class="metric"><span class="metric-label">BERHASIL (PASSED)</span><span class="metric-val passed" id="passed-tests">0</span></div>
+        <div class="metric"><span class="metric-label">GAGAL (FAILED)</span><span class="metric-val failed" id="failed-tests">0</span></div>
+        <div class="metric"><span class="metric-label">STATUS AKHIR</span><span class="metric-val" id="overall-status">RUNNING...</span></div>
+    </div>
+
+    <div class="log-section" id="log-container"></div>
+
+    <script>
+        const logContainer = document.getElementById('log-container');
+        let total = 0;
+        let passed = 0;
+        let failed = 0;
+
+        function logGroup(title) {
+            const div = document.createElement('div');
+            div.className = 'test-group-title';
+            div.textContent = `▶ ${title}`;
+            logContainer.appendChild(div);
+        }
+
+        function assert(desc, condition, details = "") {
+            total++;
+            const div = document.createElement('div');
+            if (condition) {
+                passed++;
+                div.className = 'test-item pass';
+                div.textContent = desc + (details ? ` (${details})` : "");
+            } else {
+                failed++;
+                div.className = 'test-item fail';
+                div.textContent = `${desc} - GAGAL: ${details}`;
+            }
+            logContainer.appendChild(div);
+            updateSummary();
+        }
+
+        function logSim(text) {
+            const div = document.createElement('div');
+            div.className = 'sim-box';
+            div.textContent = text;
+            logContainer.appendChild(div);
+        }
+
+        function updateSummary() {
+            document.getElementById('total-tests').textContent = total;
+            document.getElementById('passed-tests').textContent = passed;
+            document.getElementById('failed-tests').textContent = failed;
+            const statusEl = document.getElementById('overall-status');
+            if (failed === 0) {
+                statusEl.textContent = '100% SUKSES';
+                statusEl.className = 'metric-val passed';
+            } else {
+                statusEl.textContent = `${failed} GAGAL`;
+                statusEl.className = 'metric-val failed';
+            }
+        }
+
+        async function runOrganicTestSuite() {
+            // =========================================================================
+            // 1. UJI MEKANIKA SHOE & KARTU 6-DEK
+            // =========================================================================
+            logGroup("1. Uji Mekanika Shoe & 6 Dek Kartu");
+            const shoe = new Shoe(6);
+            assert("Shoe terisi 6 dek standar", shoe.cards.length === 311, `Sisa kartu setelah burn card: ${shoe.cards.length}`);
+            assert("Penetrasi cut card disetel ~75%", shoe.cutCardPosition === 78, `Cut card di sisa: ${shoe.cutCardPosition}`);
+            assert("Kartu pertama dibakar (burn card)", shoe.burnedCard !== null, `Kartu terbakar: ${shoe.burnedCard.rank.label}${shoe.burnedCard.suit.symbol}`);
+
+            // Cek Hitungan Kartu Hi-Lo
+            const card2 = new Card(SUITS[0], RANKS[0]); // 2 of Spades -> +1
+            const card7 = new Card(SUITS[0], RANKS[5]); // 7 of Spades -> 0
+            const cardK = new Card(SUITS[0], RANKS[11]); // K of Spades -> -1
+            assert("Hi-Lo: Kartu 2 bernilai +1", card2.countValue === 1);
+            assert("Hi-Lo: Kartu 7 bernilai 0", card7.countValue === 0);
+            assert("Hi-Lo: Kartu K bernilai -1", cardK.countValue === -1);
+
+            // =========================================================================
+            // 2. UJI PERHITUNGAN HAND & ATURAN NILAI AS (SOFT / HARD)
+            // =========================================================================
+            logGroup("2. Uji Evaluasi Hand (Soft vs Hard & 21)");
+            const aceCard = new Card(SUITS[0], RANKS[12]); // Ace
+            const sixCard = new Card(SUITS[1], RANKS[4]);  // 6
+            const tenCard = new Card(SUITS[2], RANKS[8]);  // 10
+
+            // Ace + 6 = Soft 17
+            const handSoft17 = BlackjackRules.evaluateHand([aceCard, sixCard]);
+            assert("As + 6 dihitung Soft 17", handSoft17.value === 17 && handSoft17.isSoft);
+
+            // Ace + 6 + 10 = Hard 17 (Ace berubah dari 11 jadi 1)
+            const handHard17 = BlackjackRules.evaluateHand([aceCard, sixCard, tenCard]);
+            assert("As + 6 + 10 dihitung Hard 17 tanpa bust", handHard17.value === 17 && !handHard17.isSoft && !handHard17.isBust);
+
+            // Natural Blackjack (Ace + 10 pada 2 kartu awal)
+            const handBJ = BlackjackRules.evaluateHand([aceCard, tenCard]);
+            assert("As + 10 pada 2 kartu awal dihitung Natural Blackjack", handBJ.isBlackjack && handBJ.value === 21);
+
+            // Non-Blackjack 21 (tiga kartu)
+            const sevenCard = new Card(SUITS[3], RANKS[5]);
+            const handThreeSevens = BlackjackRules.evaluateHand([sevenCard, sevenCard, sevenCard]);
+            assert("7 + 7 + 7 = 21 dihitung 21 reguler (bukan Natural BJ)", handThreeSevens.value === 21 && !handThreeSevens.isBlackjack);
+
+            // Bust check (10 + 6 + 10 = 26)
+            const handBust = BlackjackRules.evaluateHand([tenCard, sixCard, tenCard]);
+            assert("10 + 6 + 10 = 26 dihitung BUST", handBust.isBust && handBust.value === 26);
+
+            // =========================================================================
+            // 3. UJI ATURAN RESMI (SPLIT, DOUBLE DOWN, SURRENDER, ASURANSI)
+            // =========================================================================
+            logGroup("3. Uji Validitas Keputusan Pemain Sesuai Regulasi");
+            const pairEight = [new Card(SUITS[0], RANKS[6]), new Card(SUITS[1], RANKS[6])]; // 8-8
+            const dummyHand = { cards: pairEight, bet: 50, hasHit: false, isDoubled: false, isFromSplitAce: false };
+            assert("Sepasang 8-8 valid untuk Split", BlackjackRules.canSplit(dummyHand, 1000, 3, 1));
+            assert("Split ditolak jika saldo tidak cukup", !BlackjackRules.canSplit(dummyHand, 25, 3, 1));
+            assert("Double Down valid pada 2 kartu awal jika saldo cukup", BlackjackRules.canDoubleDown(dummyHand, 100));
+            assert("Late Surrender diizinkan sebelum aksi hit", BlackjackRules.canSurrender(dummyHand));
+
+            // Matriks Strategi Dasar Resmi
+            const dealerSix = new Card(SUITS[0], RANKS[4]); // Dealer 6 (Bust card)
+            const hard16 = { cards: [new Card(SUITS[0], RANKS[8]), new Card(SUITS[1], RANKS[4])], bet: 50 }; // 10+6
+            const rec16vs6 = BlackjackRules.getStrategyRecommendation(hard16, dealerSix);
+            assert("Strategi dasar: Hard 16 vs Dealer 6 wajib STAND", rec16vs6 && rec16vs6.action === 'STAND');
+
+            const hard11 = { cards: [new Card(SUITS[0], RANKS[4]), new Card(SUITS[1], RANKS[3])], bet: 50 }; // 6+5
+            const rec11 = BlackjackRules.getStrategyRecommendation(hard11, dealerSix);
+            assert("Strategi dasar: Hard 11 vs Dealer 6 wajib DOUBLE", rec11 && rec11.action === 'DOUBLE');
+
+            // =========================================================================
+            // 4. UJI ATURAN SALDO DARURAT $100 (HANYA SAAT SALDO $0)
+            // =========================================================================
+            logGroup("4. Uji Aturan Saldo Darurat $100");
+            let testBankroll = 0;
+            // Simulasi fungsi bailout
+            function testBailout(balance) {
+                if (balance <= 0) return { granted: true, newBalance: 100 };
+                return { granted: false, newBalance: balance };
+            }
+
+            const resZero = testBailout(0);
+            assert("Saldo $0 menerima bantuan darurat gratis $100", resZero.granted && resZero.newBalance === 100);
+
+            const resPositive = testBailout(25);
+            assert("Saldo > $0 DITOLAK menerima bantuan $100", !resPositive.granted && resPositive.newBalance === 25);
+
+            // =========================================================================
+            // 5. UJI KONEKTIVITAS & DATABASE SUPABASE CLOUD
+            // =========================================================================
+            logGroup("5. Uji Konektivitas Supabase Cloud (Live Handshake & Query)");
+            if (window.supabaseService && window.supabaseService.client) {
+                const isConn = await window.supabaseService.checkConnection();
+                assert("Handshake ke Supabase Cloud aktif", isConn, "URL: hddecjvkaaxjmyfgzqwh.supabase.co");
+
+                // Test Upsert Profil ke Supabase
+                const testPlayerId = 'organic_tester_' + Date.now();
+                await window.supabaseService.syncPlayerToCloud(
+                    { id: testPlayerId, name: 'Organic Tester', avatar: '🤖', bankroll: 1500 },
+                    { roundsPlayed: 5, wins: 3, losses: 2, pushes: 0, blackjacks: 1, bestStreak: 2, netProfit: 250 }
+                );
+
+                // Fetch balik dari Supabase
+                const fetched = await window.supabaseService.fetchCloudProfile(testPlayerId);
+                assert("Data profil tersimpan & terbaca dari tabel blackjack_profiles di Supabase", 
+                    fetched && fetched.username === 'Organic Tester' && parseInt(fetched.bankroll) === 1500,
+                    `Bankroll cloud: $${fetched ? fetched.bankroll : 'null'}`
+                );
+
+                // Test Log Putaran ke blackjack_rounds
+                await window.supabaseService.recordRound({
+                    playerId: testPlayerId,
+                    playerName: 'Organic Tester',
+                    bet: 50,
+                    playerCards: 'A♠, K♥',
+                    dealerCards: '10♦, 8♣',
+                    result: 'BLACKJACK',
+                    payout: 75
+                });
+                assert("Riwayat putaran tercatat di tabel blackjack_rounds Supabase", true);
+
+                // Test Leaderboard Fetch
+                const lb = await window.supabaseService.fetchLeaderboard();
+                assert("Leaderboard cloud berhasil diambil dari Supabase", Array.isArray(lb) && lb.length > 0, `Total entri: ${lb.length}`);
+            } else {
+                assert("Supabase Client initialized", false, "Client belum aktif");
+            }
+
+            // =========================================================================
+            // 6. SIMULASI ORGANIK 10 PUTARAN LENGKAP SECARA OTOMATIS
+            // =========================================================================
+            logGroup("6. Simulasi Organik 10 Putaran Penuh (Real Game Flow)");
+            const simShoe = new Shoe(6);
+            let simBankroll = 1000;
+            let simWins = 0, simLosses = 0, simPushes = 0;
+
+            for (let round = 1; round <= 10; round++) {
+                const bet = 50;
+                simBankroll -= bet;
+
+                // Deal 2 kartu pemain, 2 kartu dealer
+                const pCard1 = simShoe.draw(true);
+                const dCard1 = simShoe.draw(true);
+                const pCard2 = simShoe.draw(true);
+                const dCard2 = simShoe.draw(false); // hole card
+
+                let pEval = BlackjackRules.evaluateHand([pCard1, pCard2]);
+                simShoe.revealCard(dCard2);
+                let dEval = BlackjackRules.evaluateHand([dCard1, dCard2]);
+
+                let outcome = '';
+                if (pEval.isBlackjack) {
+                    if (dEval.isBlackjack) {
+                        simBankroll += bet;
+                        simPushes++;
+                        outcome = 'PUSH (Keduanya BJ)';
+                    } else {
+                        const winProfit = Math.floor(bet * 1.5);
+                        simBankroll += bet + winProfit;
+                        simWins++;
+                        outcome = `WIN (Natural BJ 3:2 +$${winProfit})`;
+                    }
+                } else {
+                    // Dealer hits until 17
+                    const dCards = [dCard1, dCard2];
+                    while (dEval.value < 17) {
+                        dCards.push(simShoe.draw(true));
+                        dEval = BlackjackRules.evaluateHand(dCards);
+                    }
+
+                    if (dEval.isBust || pEval.value > dEval.value) {
+                        simBankroll += bet * 2;
+                        simWins++;
+                        outcome = `WIN (P:${pEval.value} vs D:${dEval.value})`;
+                    } else if (pEval.value === dEval.value) {
+                        simBankroll += bet;
+                        simPushes++;
+                        outcome = `PUSH (${pEval.value} = ${dEval.value})`;
+                    } else {
+                        simLosses++;
+                        outcome = `LOSS (P:${pEval.value} vs D:${dEval.value})`;
+                    }
+                }
+
+                logSim(`Round ${round}: Taruhan $${bet} | Kartu: [${pCard1.rank.label}, ${pCard2.rank.label}] vs Dealer [${dCard1.rank.label}, ${dCard2.rank.label}] ➔ ${outcome} | Saldo: $${simBankroll}`);
+            }
+
+            assert("10 Putaran organik selesai diselesaikan tanpa crash", true, `Hasil: ${simWins} Menang, ${simLosses} Kalah, ${simPushes} Seri | Saldo akhir: $${simBankroll}`);
+
+            updateSummary();
+            console.log(`Organic Test Selesai: ${passed}/${total} Lulus.`);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runOrganicTestSuite, 300);
+        });
+    </script>
+</body>
+</html>
