@@ -16,7 +16,7 @@ function Assert-Test($title, $condition, $details = "") {
 }
 
 Write-Host "==========================================================" -ForegroundColor Yellow
-Write-Host " ORGANIC END-TO-END VERIFICATION TEST SUITE" -ForegroundColor Cyan
+Write-Host " ORGANIC END-TO-END VERIFICATION & REALTIME TEST SUITE" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Yellow
 
 # 1. Test Local Server Status & Static Assets
@@ -38,8 +38,8 @@ foreach ($asset in $assets) {
     }
 }
 
-# 2. Test Supabase Live Cloud Integration
-Write-Host "`n--- 2. Supabase Cloud Live Integration Check ---" -ForegroundColor White
+# 2. Test Supabase Live Cloud Integration & Realtime Publications
+Write-Host "`n--- 2. Supabase Cloud Live Integration & Realtime Check ---" -ForegroundColor White
 $sbUrl = 'https://hddecjvkaaxjmyfgzqwh.supabase.co'
 $sbKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkZGVjanZrYWF4am15Zmd6cXdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExMTE4MTAsImV4cCI6MjEwNjY4NzgxMH0.SGDzmHUy8ygidb5bpWPr0JAgD_ilcbw0ctfdG1DnDZ4'
 $sbHeaders = @{
@@ -59,19 +59,19 @@ try {
 }
 
 # Test 2.2: Insert / Upsert test profile
-$testProfileId = "organic_test_user_" + ([DateTimeOffset]::UtcNow).ToUnixTimeMilliseconds()
+$testProfileId = "organic_realtime_user_" + ([DateTimeOffset]::UtcNow).ToUnixTimeMilliseconds()
 $profilePayload = @{
     id = $testProfileId
-    username = "Organic VIP Player"
+    username = "Realtime VIP High Roller"
     avatar = "💎"
-    bankroll = 3500
-    rounds_played = 10
-    wins = 7
-    losses = 2
-    pushes = 1
-    blackjacks = 2
-    best_streak = 4
-    net_profit = 850
+    bankroll = 5000
+    rounds_played = 20
+    wins = 14
+    losses = 4
+    pushes = 2
+    blackjacks = 5
+    best_streak = 6
+    net_profit = 1800
 } | ConvertTo-Json
 $profileBytes = [System.Text.Encoding]::UTF8.GetBytes($profilePayload)
 
@@ -86,7 +86,7 @@ try {
 try {
     $resRead = Invoke-RestMethod -Uri "$sbUrl/rest/v1/blackjack_profiles?id=eq.$testProfileId" -Headers $sbHeaders -Method Get
     $item = if ($resRead -is [array]) { $resRead[0] } else { $resRead }
-    $verified = ($null -ne $item -and $item.username -eq "Organic VIP Player" -and [int64]$item.bankroll -eq 3500)
+    $verified = ($null -ne $item -and $item.username -eq "Realtime VIP High Roller" -and [int64]$item.bankroll -eq 5000)
     Assert-Test "Supabase Read: Verify player bankroll and stats accuracy" $verified "Cloud Bankroll: `$$($item.bankroll)"
 } catch {
     Assert-Test "Supabase Read: Verify player bankroll and stats accuracy" $false $_.Message
@@ -95,12 +95,12 @@ try {
 # Test 2.4: Log game round to blackjack_rounds
 $roundPayload = @{
     player_id = $testProfileId
-    player_name = "Organic VIP Player"
-    bet_amount = 100
-    player_cards = "A♠, 10♣"
-    dealer_cards = "10♦, 8♠"
+    player_name = "Realtime VIP High Roller"
+    bet_amount = 250
+    player_cards = "A♠, K♦"
+    dealer_cards = "10♥, 9♣"
     result = "NATURAL BLACKJACK"
-    payout = 150
+    payout = 375
 } | ConvertTo-Json
 $roundBytes = [System.Text.Encoding]::UTF8.GetBytes($roundPayload)
 
@@ -120,8 +120,63 @@ try {
     Assert-Test "Supabase Query: Global Leaderboard top high rollers retrieved" $false $_.Message
 }
 
-# 3. Test Fullscreen & Layout integrity
-Write-Host "`n--- 3. Fullscreen & Zero-Scroll CSS Integrity ---" -ForegroundColor White
+# Test 2.6: Supabase Realtime WebSocket Connection
+try {
+    $ws = New-Object System.Net.WebSockets.ClientWebSocket
+    $ws.Options.SetRequestHeader('apikey', $sbKey)
+    $wsUrl = "wss://hddecjvkaaxjmyfgzqwh.supabase.co/realtime/v1/websocket?apikey=$sbKey`&vsn=1.0.0"
+    $cts = New-Object System.Threading.CancellationTokenSource(6000)
+    $wsTask = $ws.ConnectAsync([System.Uri]$wsUrl, $cts.Token)
+    $wsTask.Wait()
+    $isOpen = ($ws.State -eq [System.Net.WebSockets.WebSocketState]::Open)
+    Assert-Test "Supabase Realtime: Live WebSocket connection established" $isOpen "State: $($ws.State)"
+    $ws.Dispose()
+} catch {
+    Assert-Test "Supabase Realtime: Live WebSocket connection established" $false $_.Message
+}
+
+# 3. Test Vercel Live Production Deployment
+Write-Host "`n--- 3. Vercel Live Production Deployment Check ---" -ForegroundColor White
+$vercelUrl = 'https://myfirstproject-two-fawn.vercel.app'
+try {
+    $rVercel = Invoke-WebRequest -Uri $vercelUrl -UseBasicParsing
+    Assert-Test "Vercel Production: Responds at $vercelUrl" ($rVercel.StatusCode -eq 200) "Status: 200 OK"
+} catch {
+    Assert-Test "Vercel Production: Responds at $vercelUrl" $false $_.Message
+}
+
+$vAssets = @('style.css', 'js/rules.js', 'js/game.js', 'js/audio.js', 'js/supabase-client.js', 'js/i18n.js', 'js/peer-multiplayer.js')
+foreach ($va in $vAssets) {
+    try {
+        $rVa = Invoke-WebRequest -Uri "$vercelUrl/$va" -UseBasicParsing
+        Assert-Test "Vercel Production Asset: $va" ($rVa.StatusCode -eq 200) "Status: 200 OK"
+    } catch {
+        Assert-Test "Vercel Production Asset: $va" $false $_.Message
+    }
+}
+
+# 4. Test Realtime Engine Code & Multi-Channel Sync Integrity
+Write-Host "`n--- 4. Realtime Engine & Multi-Channel Code Integrity ---" -ForegroundColor White
+$clientJs = Get-Content -Path 'c:\myfirstproject\js\supabase-client.js' -Raw
+$peerJs = Get-Content -Path 'c:\myfirstproject\js\peer-multiplayer.js'
+$gameJs = Get-Content -Path 'c:\myfirstproject\js\game.js' -Raw
+
+$hasRtLeaderboard = $clientJs -match 'subscribeToLeaderboard'
+$hasRtProfile = $clientJs -match 'subscribeToProfile'
+$hasRtTableBroadcast = $clientJs -match 'sendTableBroadcast'
+$hasDualChannelMultiplayer = $peerJs -match 'supabaseService\.sendTableBroadcast'
+$hasDeduplication = $peerJs -match 'seenMessageIds'
+$hasRtRoundLogging = $gameJs -match 'supabaseService\.recordRound'
+
+Assert-Test "SupabaseService has subscribeToLeaderboard method" $hasRtLeaderboard
+Assert-Test "SupabaseService has subscribeToProfile method" $hasRtProfile
+Assert-Test "SupabaseService has sendTableBroadcast method" $hasRtTableBroadcast
+Assert-Test "MultiplayerManager bridges WebRTC + Supabase Realtime" $hasDualChannelMultiplayer
+Assert-Test "MultiplayerManager implements message deduplication" $hasDeduplication
+Assert-Test "GameEngine records finished rounds to Supabase Cloud in real-time" $hasRtRoundLogging
+
+# 5. Test Fullscreen & Zero-Scroll CSS Integrity
+Write-Host "`n--- 5. Fullscreen & Zero-Scroll CSS Integrity ---" -ForegroundColor White
 $cssContent = Get-Content -Path 'c:\myfirstproject\style.css' -Raw
 $hasOverflowHidden = $cssContent -match 'html,\s*body\s*\{[^}]*overflow:\s*hidden'
 $hasNoScrollContainer = $cssContent -match '\.casino-app-container\s*\{[^}]*max-height:\s*100vh'
@@ -131,12 +186,11 @@ Assert-Test "CSS enforces overflow: hidden on html & body (No vertical scrollbar
 Assert-Test "CSS locks .casino-app-container to 100vh viewport" $hasNoScrollContainer
 Assert-Test "HTML includes dedicated Fullscreen toggle button" $hasFullscreenBtn
 
-# 4. Test Zero-Balance Emergency $100 Bailout Rule Integrity
-Write-Host "`n--- 4. Zero-Balance Emergency `$100 Bailout Integrity ---" -ForegroundColor White
-$gameContent = Get-Content -Path 'c:\myfirstproject\js\game.js' -Raw
-$hasBailoutMethod = $gameContent -match 'checkAndGrantZeroBalanceBonus'
-$hasBailoutCondition = $gameContent -match 'bankroll\s*<=\s*0'
-$hasStrictCheck = $gameContent -match 'Saldo gratis \$100 hanya diberikan jika saldo Anda \$0'
+# 6. Test Zero-Balance Emergency $100 Bailout Rule Integrity
+Write-Host "`n--- 6. Zero-Balance Emergency `$100 Bailout Integrity ---" -ForegroundColor White
+$hasBailoutMethod = $gameJs -match 'checkAndGrantZeroBalanceBonus'
+$hasBailoutCondition = $gameJs -match 'bankroll\s*<=\s*0'
+$hasStrictCheck = $gameJs -match 'Saldo gratis \$100 hanya diberikan jika saldo Anda \$0'
 
 Assert-Test "Game engine includes checkAndGrantZeroBalanceBonus method" $hasBailoutMethod
 Assert-Test "Bailout triggered strictly when bankroll reaches 0" $hasBailoutCondition

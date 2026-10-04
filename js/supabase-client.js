@@ -226,6 +226,48 @@ class SupabaseService {
             });
         }
     }
+
+    // Realtime Leaderboard subscription for live table rankings
+    subscribeToLeaderboard(callback) {
+        if (!this.client) return null;
+        if (this.leaderboardChannel) {
+            return this.leaderboardChannel;
+        }
+
+        this.leaderboardChannel = this.client
+            .channel('realtime_blackjack_leaderboard')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'blackjack_profiles' },
+                (payload) => {
+                    if (callback) callback(payload);
+                }
+            )
+            .subscribe((status) => {
+                console.log('Realtime Leaderboard subscription status:', status);
+            });
+
+        return this.leaderboardChannel;
+    }
+
+    // Realtime Profile subscription for live bankroll balance updates
+    subscribeToProfile(playerId, callback) {
+        if (!this.client || !playerId) return null;
+
+        const channelName = `realtime_profile_${playerId}`;
+        const channel = this.client
+            .channel(channelName)
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'blackjack_profiles', filter: `id=eq.${playerId}` },
+                (payload) => {
+                    if (callback) callback(payload.new);
+                }
+            )
+            .subscribe();
+
+        return channel;
+    }
 }
 
 window.supabaseService = new SupabaseService();

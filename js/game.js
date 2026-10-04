@@ -1027,6 +1027,27 @@ class BlackjackGame {
 
         this.stats.roundsPlayed++;
         this.saveStats();
+
+        // Record round history to Supabase Cloud in real-time
+        if (window.supabaseService && window.supabaseService.connected) {
+            const mySeat = this.seats[this.mySeatIndex];
+            if (mySeat && mySeat.player && mySeat.hands) {
+                mySeat.hands.forEach(h => {
+                    if (h.bet > 0) {
+                        window.supabaseService.recordRound({
+                            playerId: mySeat.player.id,
+                            playerName: mySeat.player.name,
+                            bet: h.bet,
+                            playerCards: h.cards.map(c => `${c.rank.label}${c.suit.symbol}`).join(', '),
+                            dealerCards: this.dealer.cards.map(c => `${c.rank.label}${c.suit.symbol}`).join(', '),
+                            result: h.resultText || 'COMPLETED',
+                            payout: h.payoutWon || 0
+                        });
+                    }
+                });
+            }
+        }
+
         this.renderSeats();
         this.renderHeader();
 

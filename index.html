@@ -537,6 +537,16 @@ create policy "Izinkan baca rounds log" on public.blackjack_rounds for select us
                 container.innerHTML = `<p style="color:#ef4444; font-size:0.85rem;">⚠️ Belum terhubung ke Supabase. Silakan masukkan Project URL & Anon Key di tab Pengaturan API.</p>`;
                 return;
             }
+
+            // Subscribe to live Realtime updates once
+            if (!window._subscribedToRealtimeLeaderboard) {
+                window._subscribedToRealtimeLeaderboard = true;
+                window.supabaseService.subscribeToLeaderboard(() => {
+                    console.log('Realtime push: refreshing leaderboard table...');
+                    loadCloudLeaderboard();
+                });
+            }
+
             container.innerHTML = `<p style="color:var(--text-secondary); font-size:0.85rem;">Memuat data dari cloud...</p>`;
             const list = await window.supabaseService.fetchLeaderboard();
             if (!list || list.length === 0) {

@@ -17,6 +17,7 @@ class MultiplayerManager {
         this.myName = 'Player ' + Math.floor(100 + Math.random() * 900);
         this.myAvatar = '🎩';
         this.broadcastChannel = null;
+        this.seenMessageIds = new Set();
 
         this.initBroadcastChannel();
     }
@@ -90,6 +91,15 @@ class MultiplayerManager {
             this.game.onRoomCreated(this.roomCode);
         }
 
+        // Connect Supabase Realtime table channel
+        if (window.supabaseService && window.supabaseService.connected) {
+            window.supabaseService.subscribeToTableChannel(this.roomCode, (payload) => {
+                if (payload && payload._senderId !== this.myPlayerId) {
+                    this.handleIncomingMessage(payload, 'supabase_realtime');
+                }
+            });
+        }
+
         // Notify broadcast channel
         this.broadcast({
             type: 'ROOM_ANNOUNCE',
@@ -126,11 +136,29 @@ class MultiplayerManager {
 
                 this.peer.on('error', (err) => {
                     console.warn('Join Peer error:', err);
-                    this.game.showToast(`Tidak dapat tersambung via P2P: ${err.message || err.type}. Mencoba koneksi lokal...`);
+                    this.game.showToast(`P2P Status: ${err.message || err.type}. Menggunakan koneksi cloud realtime.`);
                 });
             } catch (e) {
                 console.error('Join room failed:', e);
             }
+        }
+
+        // Connect Supabase Realtime table channel
+        if (window.supabaseService && window.supabaseService.connected) {
+            window.supabaseService.subscribeToTableChannel(this.roomCode, (payload) => {
+                if (payload && payload._senderId !== this.myPlayerId) {
+                    this.handleIncomingMessage(payload, 'supabase_realtime');
+                }
+            });
+            window.supabaseService.sendTableBroadcast({
+                type: 'CLIENT_JOIN_REQUEST',
+                roomCode: this.roomCode,
+                playerId: this.myPlayerId,
+                name: this.myName,
+                avatar: this.myAvatar,
+                _senderId: this.myPlayerId,
+                _target: 'host'
+            });
         }
 
         // Also ping via BroadcastChannel for multi-tab join
@@ -194,6 +222,7 @@ class MultiplayerManager {
     sendToHost(msg) {
         msg.senderId = this.myPlayerId;
         msg.senderName = this.myName;
+        msg._msgId = msg._msgId || `${this.myPlayerId}_${Date.now()}_${Math.random()}`;
 
         if (this.hostConn && this.hostConn.open) {
             this.hostConn.send(msg);
@@ -205,9 +234,19 @@ class MultiplayerManager {
                 _roomCode: this.roomCode
             });
         }
+        if (window.supabaseService && window.supabaseService.connected) {
+            window.supabaseService.sendTableBroadcast({
+                ...msg,
+                _senderId: this.myPlayerId,
+                _target: 'host',
+                _roomCode: this.roomCode
+            });
+        }
     }
 
     broadcast(msg) {
+        msg._msgId = msg._msgId || `${this.myPlayerId}_${Date.now()}_${Math.random()}`;
+
         // Send to all connected WebRTC peers if host
         if (this.isHost) {
             for (const [peerId, conn] of this.connections.entries()) {
@@ -224,10 +263,29 @@ class MultiplayerManager {
                 _roomCode: this.roomCode
             });
         }
+
+        // Also broadcast via Supabase Realtime channel
+        if (this.isHost && window.supabaseService && window.supabaseService.connected) {
+            window.supabaseService.sendTableBroadcast({
+                ...msg,
+                _senderId: this.myPlayerId,
+                _roomCode: this.roomCode
+            });
+        }
     }
 
     handleIncomingMessage(msg, fromSource) {
         if (!msg || !msg.type) return;
+
+        // Deduplicate messages across WebRTC / BroadcastChannel / Supabase Realtime
+        if (msg._msgId) {
+            if (this.seenMessageIds.has(msg._msgId)) return;
+            this.seenMessageIds.add(msg._msgId);
+            if (this.seenMessageIds.size > 200) {
+                const first = this.seenMessageIds.values().next().value;
+                this.seenMessageIds.delete(first);
+            }
+        }
 
         // If local multi-tab message, check room code filter
         if (msg._roomCode && this.roomCode && msg._roomCode !== this.roomCode) {

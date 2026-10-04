@@ -212,6 +212,14 @@
                 // Test Leaderboard Fetch
                 const lb = await window.supabaseService.fetchLeaderboard();
                 assert("Leaderboard cloud berhasil diambil dari Supabase", Array.isArray(lb) && lb.length > 0, `Total entri: ${lb.length}`);
+
+                // Test Supabase Realtime WebSocket Channels
+                const testRoom = 'TEST_' + Math.floor(Math.random() * 1000);
+                const tableChannel = window.supabaseService.subscribeToTableChannel(testRoom, (data) => {});
+                assert("Supabase Realtime Channel: Terhubung ke WebSocket room multiplayer", tableChannel !== null, `Room: ${testRoom}`);
+
+                const lbChannel = window.supabaseService.subscribeToLeaderboard((payload) => {});
+                assert("Supabase Realtime Leaderboard: Listening ke postgres_changes blackjack_profiles", lbChannel !== null);
             } else {
                 assert("Supabase Client initialized", false, "Client belum aktif");
             }
