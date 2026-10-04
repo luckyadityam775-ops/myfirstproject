@@ -1529,21 +1529,43 @@ class BlackjackGame {
         }
     }
 
-    // STATS STORAGE
+    // STATS STORAGE & SUPABASE CLOUD SYNC
     saveStats() {
         try {
             localStorage.setItem('royal_blackjack_stats', JSON.stringify(this.stats));
             localStorage.setItem('royal_blackjack_bankroll', this.myBankroll.toString());
         } catch (e) {}
+
+        if (window.supabaseService && window.supabaseService.connected) {
+            window.supabaseService.syncPlayerToCloud(
+                { id: this.multiplayer.myPlayerId, name: this.multiplayer.myName, avatar: this.multiplayer.myAvatar, bankroll: this.myBankroll },
+                this.stats
+            );
+        }
     }
 
-    loadStats() {
+    async loadStats() {
         try {
             const saved = localStorage.getItem('royal_blackjack_stats');
             if (saved) this.stats = { ...this.stats, ...JSON.parse(saved) };
             const savedBankroll = localStorage.getItem('royal_blackjack_bankroll');
             if (savedBankroll) this.myBankroll = parseInt(savedBankroll, 10) || 2500;
         } catch (e) {}
+
+        // If connected to Supabase, restore cloud profile
+        if (window.supabaseService && window.supabaseService.connected) {
+            const cloudProfile = await window.supabaseService.fetchCloudProfile(this.multiplayer.myPlayerId);
+            if (cloudProfile && typeof cloudProfile.bankroll === 'number') {
+                this.myBankroll = cloudProfile.bankroll;
+                this.seats.forEach(seat => {
+                    if (seat.occupied && seat.player && seat.player.isLocal && seat.player.id === this.multiplayer.myPlayerId) {
+                        seat.player.bankroll = this.myBankroll;
+                    }
+                });
+                this.renderHeader();
+                this.renderSeats();
+            }
+        }
     }
 
     sleep(ms) {

@@ -14,6 +14,9 @@
     <!-- PeerJS for WebRTC P2P Multiplayer -->
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
+    <!-- Supabase JS Client SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <!-- Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -37,6 +40,10 @@
                     <span class="badge badge-limits" data-i18n="min_max">Batas: $10 - $2,500</span>
                     <span class="badge badge-rules" data-i18n="table_rules">BJ Bayar 3:2 • Dealer Stand di 17 • Asuransi 2:1</span>
                     <span class="badge badge-mode" id="current-mode-badge" data-i18n="mode_solo">Mode: Solo / Multi-Hand</span>
+                    <span class="badge badge-supabase disconnected" id="supabase-status-badge" title="Klik untuk Pengaturan Supabase Cloud">
+                        <span class="status-dot" id="supabase-status-dot"></span>
+                        <span id="supabase-status-text">Supabase</span>
+                    </span>
                 </div>
             </div>
 
@@ -69,6 +76,7 @@
 
                 <div class="top-nav-actions">
                     <button class="nav-icon-btn" id="fullscreen-btn" title="Layar Penuh (Fullscreen)">⛶</button>
+                    <button class="nav-icon-btn" id="supabase-btn" title="Koneksi Supabase Cloud">⚡</button>
                     <button class="nav-icon-btn" id="strategy-btn" data-i18n-title="strategy_btn" title="Saran Strategi">💡</button>
                     <button class="nav-icon-btn" id="multiplayer-btn" data-i18n-title="multiplayer_btn" title="Multiplayer">👥</button>
                     <button class="nav-icon-btn" id="stats-btn" data-i18n-title="stats_btn" title="Statistik">📊</button>
@@ -403,6 +411,99 @@
         </div>
     </div>
 
+    <!-- MODAL: SUPABASE CLOUD & LEADERBOARD -->
+    <div class="casino-modal-overlay" id="supabase-modal">
+        <div class="casino-modal-card large">
+            <div class="modal-header">
+                <h3 class="modal-title">⚡ Koneksi Supabase Cloud & Leaderboard</h3>
+                <button class="modal-close-btn" onclick="document.getElementById('supabase-modal').classList.remove('active')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="multiplayer-tabs">
+                    <button class="mp-tab active" id="sb-tab-config" onclick="switchSbTab('config')">Pengaturan API</button>
+                    <button class="mp-tab" id="sb-tab-leaderboard" onclick="switchSbTab('leaderboard')">🏆 Leaderboard Global</button>
+                    <button class="mp-tab" id="sb-tab-sql" onclick="switchSbTab('sql')">📄 Skrip SQL Schema</button>
+                </div>
+
+                <!-- Tab 1: Config -->
+                <div class="sb-panel" id="sb-panel-config">
+                    <p class="mp-desc">Hubungkan game ke proyek Supabase Anda untuk menyimpan saldo secara cloud, menyinkronkan profil pemain, dan mengaktifkan leaderboard global.</p>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--gold-light); margin-bottom:4px;">SUPABASE PROJECT URL</label>
+                        <input type="text" id="supabase-url-input" placeholder="https://your-project.supabase.co" style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.2); padding:8px 12px; border-radius:6px; color:#fff; font-size:0.85rem;">
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--gold-light); margin-bottom:4px;">SUPABASE ANON PUBLIC KEY</label>
+                        <input type="password" id="supabase-key-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.2); padding:8px 12px; border-radius:6px; color:#fff; font-size:0.85rem;">
+                    </div>
+
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="casino-btn btn-primary" id="btn-save-supabase">Simpan & Uji Koneksi</button>
+                        <button class="casino-btn btn-secondary" id="btn-sync-cloud-now">Sinkronkan Saldo Sekarang</button>
+                    </div>
+
+                    <div id="supabase-connect-result" style="margin-top:14px; font-size:0.85rem; font-weight:600;"></div>
+                </div>
+
+                <!-- Tab 2: Leaderboard -->
+                <div class="sb-panel" id="sb-panel-leaderboard" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <span style="font-size:0.85rem; color:var(--text-secondary);">10 Pemain Terkaya di Supabase Cloud:</span>
+                        <button class="casino-btn btn-secondary" style="padding:4px 10px; font-size:0.75rem;" id="btn-refresh-leaderboard">🔄 Segarkan</button>
+                    </div>
+                    <div id="leaderboard-table-container">
+                        <p style="color:var(--text-secondary); font-size:0.85rem;">Klik tombol di atas untuk memuat leaderboard.</p>
+                    </div>
+                </div>
+
+                <!-- Tab 3: SQL Schema -->
+                <div class="sb-panel" id="sb-panel-sql" style="display:none;">
+                    <p class="mp-desc">Jalankan skrip SQL ini di <strong>SQL Editor</strong> Dashboard Supabase Anda untuk membuat tabel <code>blackjack_profiles</code> dan <code>blackjack_rounds</code>:</p>
+                    <div style="position:relative;">
+                        <textarea id="supabase-sql-code" readonly style="width:100%; height:180px; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:#4ade80; font-family:monospace; font-size:0.75rem; padding:10px; resize:none;">create table if not exists public.blackjack_profiles (
+    id text primary key,
+    username text not null default 'Pemain',
+    avatar text not null default '👑',
+    bankroll bigint not null default 2500,
+    rounds_played integer not null default 0,
+    wins integer not null default 0,
+    losses integer not null default 0,
+    pushes integer not null default 0,
+    blackjacks integer not null default 0,
+    best_streak integer not null default 0,
+    net_profit bigint not null default 0,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+create table if not exists public.blackjack_rounds (
+    id uuid default gen_random_uuid() primary key,
+    player_id text references public.blackjack_profiles(id) on delete cascade,
+    player_name text not null,
+    bet_amount integer not null,
+    player_cards text not null,
+    dealer_cards text not null,
+    result text not null,
+    payout integer not null default 0,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.blackjack_profiles enable row level security;
+alter table public.blackjack_rounds enable row level security;
+
+create policy "Izinkan baca publik profiles" on public.blackjack_profiles for select using (true);
+create policy "Izinkan simpan dan update profiles" on public.blackjack_profiles for all using (true) with check (true);
+create policy "Izinkan simpan rounds log" on public.blackjack_rounds for insert with check (true);
+create policy "Izinkan baca rounds log" on public.blackjack_rounds for select using (true);</textarea>
+                        <button class="copy-btn" id="btn-copy-sql" style="position:absolute; top:8px; right:8px;">Salin SQL</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST NOTIFICATION -->
     <div class="casino-toast-msg" id="casino-toast">Pesan Kasino</div>
 
@@ -410,9 +511,45 @@
     <script src="js/audio.js"></script>
     <script src="js/rules.js"></script>
     <script src="js/i18n.js"></script>
+    <script src="js/supabase-client.js"></script>
     <script src="js/peer-multiplayer.js"></script>
     <script src="js/game.js"></script>
     <script>
+        // Tab switching in Supabase Modal
+        function switchSbTab(tab) {
+            document.querySelectorAll('#supabase-modal .mp-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#supabase-modal .sb-panel').forEach(p => p.style.display = 'none');
+            
+            const btn = document.getElementById(`sb-tab-${tab}`);
+            const panel = document.getElementById(`sb-panel-${tab}`);
+            if (btn) btn.classList.add('active');
+            if (panel) panel.style.display = 'block';
+
+            if (tab === 'leaderboard') {
+                loadCloudLeaderboard();
+            }
+        }
+
+        async function loadCloudLeaderboard() {
+            const container = document.getElementById('leaderboard-table-container');
+            if (!container) return;
+            if (!window.supabaseService || !window.supabaseService.connected) {
+                container.innerHTML = `<p style="color:#ef4444; font-size:0.85rem;">⚠️ Belum terhubung ke Supabase. Silakan masukkan Project URL & Anon Key di tab Pengaturan API.</p>`;
+                return;
+            }
+            container.innerHTML = `<p style="color:var(--text-secondary); font-size:0.85rem;">Memuat data dari cloud...</p>`;
+            const list = await window.supabaseService.fetchLeaderboard();
+            if (!list || list.length === 0) {
+                container.innerHTML = `<p style="color:var(--text-secondary); font-size:0.85rem;">Belum ada pemain yang tersimpan di leaderboard cloud.</p>`;
+                return;
+            }
+            let html = `<table class="strategy-chart-table"><thead><tr><th>#</th><th>Pemain</th><th>Saldo Cloud</th><th>Menang</th><th>Blackjack</th></tr></thead><tbody>`;
+            list.forEach((p, idx) => {
+                html += `<tr><td>${idx + 1}</td><td>${p.avatar || '👑'} ${p.username}</td><td style="color:#22c55e; font-weight:800;">$${(p.bankroll || 0).toLocaleString()}</td><td>${p.wins || 0}</td><td>${p.blackjacks || 0}</td></tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
         // Tab switching in Multiplayer Modal
         function switchMpTab(tab) {
             document.querySelectorAll('.mp-tab').forEach(t => t.classList.remove('active'));
@@ -535,6 +672,53 @@
             document.getElementById('chat-input-field').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') sendChat();
             });
+
+            // Supabase Modal & Actions
+            const openSbModal = () => {
+                document.getElementById('supabase-url-input').value = window.supabaseService.url || '';
+                document.getElementById('supabase-key-input').value = window.supabaseService.key || '';
+                document.getElementById('supabase-modal').classList.add('active');
+            };
+            document.getElementById('supabase-btn').addEventListener('click', openSbModal);
+            document.getElementById('supabase-status-badge').addEventListener('click', openSbModal);
+
+            document.getElementById('btn-save-supabase').addEventListener('click', async () => {
+                const url = document.getElementById('supabase-url-input').value;
+                const key = document.getElementById('supabase-key-input').value;
+                const resEl = document.getElementById('supabase-connect-result');
+                resEl.style.color = '#eab308';
+                resEl.textContent = 'Menguji koneksi ke Supabase...';
+
+                const res = await window.supabaseService.saveConfig(url, key);
+                resEl.style.color = res.success ? '#22c55e' : '#ef4444';
+                resEl.textContent = res.message;
+
+                if (res.success) {
+                    window.game.saveStats();
+                    window.game.showToast('✅ Berhasil terhubung ke Supabase Cloud!');
+                }
+            });
+
+            document.getElementById('btn-sync-cloud-now').addEventListener('click', () => {
+                if (!window.supabaseService.connected) {
+                    window.game.showToast('⚠️ Hubungkan Supabase terlebih dahulu.');
+                    return;
+                }
+                window.game.saveStats();
+                window.game.showToast('✅ Saldo dan profil disinkronkan ke Supabase Cloud!');
+            });
+
+            document.getElementById('btn-refresh-leaderboard').addEventListener('click', () => {
+                loadCloudLeaderboard();
+            });
+
+            document.getElementById('btn-copy-sql').addEventListener('click', () => {
+                const sql = document.getElementById('supabase-sql-code').value;
+                navigator.clipboard.writeText(sql);
+                window.game.showToast('Skrip SQL disalin ke clipboard!');
+            });
+
+            window.supabaseService.updateStatusBadge();
 
             // Initial render
             window.i18n.updateDOM();
